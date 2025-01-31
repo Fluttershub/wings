@@ -154,18 +154,31 @@ func (e *Environment) Create() error {
 
 	cfg := config.Get()
 	a := e.Configuration.Allocations()
+
+	// Merge user-provided labels with system labels
+	confLabels := e.Configuration.Labels()
+	// Was 2 but we add extra padding for the traefik labels
+	labels := make(map[string]string, 8+len(confLabels))
+
 	evs := e.Configuration.EnvironmentVariables()
+
 	for i, v := range evs {
 		// Convert 127.0.0.1 to the pterodactyl0 network interface if the environment is Docker
 		// so that the server operates as expected.
 		if v == "SERVER_IP=127.0.0.1" {
 			evs[i] = "SERVER_IP=" + cfg.Docker.Network.Interface
 		}
+		// Check if Traefik is enabled and set the appropriate labels
+		if v == "ENABLE_TRAEFIK=true" {
+			confLabels["traefik.enable"] = "true"
+		}
+		// Check for the Traefik domain and set the appropriate label
+		if strings.HasPrefix(v, "TRAEFIK_DOMAIN=") {
+			domain := strings.TrimPrefix(v, "TRAEFIK_DOMAIN=")
+			confLabels["traefik.http.routers."+e.Id+".rule"] = "Host(`" + domain + "`)"
+			confLabels["traefik.http.routers."+e.Id+".tls.certresolver"] = "letsencrypt"
+		}
 	}
-
-	// Merge user-provided labels with system labels
-	confLabels := e.Configuration.Labels()
-	labels := make(map[string]string, 2+len(confLabels))
 
 	for key := range confLabels {
 		labels[key] = confLabels[key]
