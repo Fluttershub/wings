@@ -157,6 +157,9 @@ func (e *Environment) Create() error {
 
 	// Merge user-provided labels with system labels
 	confLabels := e.Configuration.Labels()
+	if confLabels == nil {
+		confLabels = make(map[string]string)
+	}
 
 	evs := e.Configuration.EnvironmentVariables()
 
@@ -173,18 +176,16 @@ func (e *Environment) Create() error {
 		// Check for the Traefik domain and set the appropriate label
 		if strings.HasPrefix(v, "TRAEFIK_DOMAIN=") {
 			domain := strings.TrimPrefix(v, "TRAEFIK_DOMAIN=")
-			// Print the eid for debugging
-			e.log().Debug("environment/docker: setting traefik domain for server: " + domain)
 			confLabels["traefik.http.routers."+e.Id+".rule"] = "Host(`" + domain + "`)"
 			confLabels["traefik.http.routers."+e.Id+".tls.certresolver"] = "letsencrypt"
 		}
 	}
 
-	// Was 2 but we add extra padding for the traefik labels
-	labels := make(map[string]string, 4+len(confLabels))
+	labels := make(map[string]string, len(confLabels)+6)
 
-	for key := range confLabels {
-		labels[key] = confLabels[key]
+	// Add user-provided labels to the labels map
+	for k, v := range confLabels {
+		labels[k] = v
 	}
 	labels["Service"] = "Pterodactyl"
 	labels["ContainerType"] = "server_process"
@@ -199,7 +200,7 @@ func (e *Environment) Create() error {
 		Tty:          true,
 		ExposedPorts: a.Exposed(),
 		Image:        strings.TrimPrefix(e.meta.Image, "~"),
-		Env:          e.Configuration.EnvironmentVariables(),
+		Env:          evs,
 		Labels:       labels,
 	}
 
