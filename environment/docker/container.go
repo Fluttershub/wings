@@ -157,8 +157,6 @@ func (e *Environment) Create() error {
 
 	// Merge user-provided labels with system labels
 	confLabels := e.Configuration.Labels()
-	// Was 2 but we add extra padding for the traefik labels
-	labels := make(map[string]string, 8+len(confLabels))
 
 	evs := e.Configuration.EnvironmentVariables()
 
@@ -179,6 +177,9 @@ func (e *Environment) Create() error {
 			confLabels["traefik.http.routers."+e.Id+".tls.certresolver"] = "letsencrypt"
 		}
 	}
+
+	// Was 2 but we add extra padding for the traefik labels
+	labels := make(map[string]string, 4+len(confLabels))
 
 	for key := range confLabels {
 		labels[key] = confLabels[key]
