@@ -173,6 +173,8 @@ func (e *Environment) Create() error {
 		// Check for the Traefik domain and set the appropriate label
 		if strings.HasPrefix(v, "TRAEFIK_DOMAIN=") {
 			domain := strings.TrimPrefix(v, "TRAEFIK_DOMAIN=")
+			// Print the eid for debugging
+			e.log().Debug("environment/docker: setting traefik domain for server: " + domain)
 			confLabels["traefik.http.routers."+e.Id+".rule"] = "Host(`" + domain + "`)"
 			confLabels["traefik.http.routers."+e.Id+".tls.certresolver"] = "letsencrypt"
 		}
